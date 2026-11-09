@@ -327,7 +327,7 @@ export async function expulsarIntegrante(req: AuthRequest, res: Response) {
         if (!grupo) return;
 
         if (!puedeExpulsar(grupo.lider_id, usuario)) {
-            return res.status(HttpStatus.UNAUTHORIZED).json({
+            return res.status(HttpStatus.FORBIDDEN).json({
                 message: 'Solo el lider del grupo o un administrador pueden expulsar integrantes',
             });
         }
