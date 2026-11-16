@@ -9,8 +9,11 @@ import {
     salirDeGrupo,
     expulsarIntegrante,
     transferirLiderazgo,
+    subirPortada,
+    eliminarPortada
 } from '../controllers/grupo.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { subirUnaImagen } from '../middlewares/upload.middleware';
 
 const router = Router();
 
@@ -236,5 +239,57 @@ router.delete('/:id/integrantes', authMiddleware, expulsarIntegrante);
  *         description: El nuevo líder debe ser miembro del grupo.
  */
 router.patch('/:id/transferir-liderazgo', authMiddleware, transferirLiderazgo);
+
+
+/**
+ * @swagger
+ * /grupo/{id}/imagen:
+ *   post:
+ *     tags: [Grupos]
+ *     summary: Subir o reemplazar la portada del grupo (líder o admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               imagen:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Portada actualizada.
+ *       400:
+ *         description: Sin imagen, no es imagen, o pesa más de 15 MB.
+ *       403:
+ *         description: No es el líder ni administrador.
+ *   delete:
+ *     tags: [Grupos]
+ *     summary: Eliminar la portada del grupo (líder o admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Portada eliminada.
+ *       403:
+ *         description: No es el líder ni administrador.
+ *       404:
+ *         description: El grupo no tiene portada.
+ */
+router.post('/:id/imagen', authMiddleware, subirUnaImagen('imagen'), subirPortada);
+router.delete('/:id/imagen', authMiddleware, eliminarPortada);
 
 export default router;

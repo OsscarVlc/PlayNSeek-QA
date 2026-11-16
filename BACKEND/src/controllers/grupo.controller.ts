@@ -10,6 +10,7 @@ import {
     agregarMiembroComunidad,
     quitarMiembroComunidad,
 } from '../database/dgraph/queries/comunidad.queries';
+import { subirImagen, eliminarImagen } from '../services/cloudinary.service';
 
 // ---------- Constantes de mensajes (evita strings repetidos) ----------
 const MSG_NO_AUTENTICADO = 'No autenticado';
@@ -66,6 +67,20 @@ function puedeExpulsar(liderId: Types.ObjectId, usuario: UsuarioAutenticado): bo
     const esAdmin = usuario.rol === Roles.ADMIN;
     return esLider || esAdmin;
 }
+
+
+
+/**
+ * Determina si un usuario puede gestionar la portada de un grupo:
+ * solo el líder del grupo, o cualquier administrador.
+ */
+function puedeGestionarPortada(liderId: Types.ObjectId, usuario: UsuarioAutenticado): boolean {
+    const esLider = liderId.toString() === usuario._id.toString();
+    const esAdmin = usuario.rol === Roles.ADMIN;
+    return esLider || esAdmin;
+}
+
+
 
 /**
  * Sincroniza la expulsión de un integrante con Dgraph.
@@ -389,6 +404,85 @@ export async function transferirLiderazgo(req: AuthRequest, res: Response) {
         await grupo.save();
 
         return res.json({ message: 'Liderazgo transferido exitosamente', grupo });
+    } catch (err) {
+        manejarErrorControlador(err, res);
+    }
+}
+
+
+
+// POST /grupo/:id/imagen  (multipart/form-data, campo "imagen")
+// Sube o reemplaza la portada del grupo. Solo el líder o un administrador.
+export async function subirPortada(req: AuthRequest, res: Response) {
+    try {
+        const usuario = obtenerUsuarioAutenticado(req, res);
+        if (!usuario) return;
+
+        const { id } = req.params;
+        const grupo = await buscarGrupoActivo(id, res);
+        if (!grupo) return;
+
+        if (!puedeGestionarPortada(grupo.lider_id, usuario)) {
+            return res.status(HttpStatus.FORBIDDEN).json({
+                message: 'Solo el lider o un administrador pueden cambiar la portada',
+            });
+        }
+
+        if (!req.file) {
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: 'No se envio ninguna imagen' });
+        }
+
+        // Si ya tenía portada, borramos la anterior de Cloudinary para no
+        // dejar imágenes huérfanas. Si falla, se registra y se sigue.
+        if (grupo.imagen_public_id) {
+            try {
+                await eliminarImagen(grupo.imagen_public_id);
+            } catch (err) {
+                console.error(`No se pudo borrar la portada anterior del grupo ${grupo._id}:`, err);
+            }
+        }
+
+        const imagen = await subirImagen(req.file.buffer, 'play-n-seek/grupos');
+        grupo.imagen = imagen.url;
+        grupo.imagen_public_id = imagen.publicId;
+        await grupo.save();
+
+        return res.json({ message: 'Portada actualizada correctamente', grupo });
+    } catch (err) {
+        manejarErrorControlador(err, res);
+    }
+}
+
+// DELETE /grupo/:id/imagen
+// Elimina la portada del grupo. Solo el líder o un administrador.
+export async function eliminarPortada(req: AuthRequest, res: Response) {
+    try {
+        const usuario = obtenerUsuarioAutenticado(req, res);
+        if (!usuario) return;
+
+        const { id } = req.params;
+        const grupo = await buscarGrupoActivo(id, res);
+        if (!grupo) return;
+
+        if (!puedeGestionarPortada(grupo.lider_id, usuario)) {
+            return res.status(HttpStatus.FORBIDDEN).json({
+                message: 'Solo el lider o un administrador pueden eliminar la portada',
+            });
+        }
+
+        if (!grupo.imagen) {
+            return res.status(HttpStatus.NOT_FOUND).json({ message: 'El grupo no tiene portada' });
+        }
+
+        if (grupo.imagen_public_id) {
+            await eliminarImagen(grupo.imagen_public_id);
+        }
+
+        grupo.imagen = undefined;
+        grupo.imagen_public_id = undefined;
+        await grupo.save();
+
+        return res.json({ message: 'Portada eliminada correctamente', grupo });
     } catch (err) {
         manejarErrorControlador(err, res);
     }

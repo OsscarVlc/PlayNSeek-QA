@@ -1,4 +1,6 @@
+import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import { HttpStatus } from '../types/https-status';
 
 // guardamos temporalmente en memoria porque de ahi
 // lo subimos directo a Cloudinary sin necesitar un archivo fisico intermedio
@@ -14,3 +16,26 @@ export const upload = multer({
         cb(null, true);
     },
 });
+
+/**
+ * Igual que upload.single(campo), pero si multer rechaza el archivo (no es
+ * imagen o pesa demasiado) responde 400 con { message }, que es la forma de
+ * error que espera el front, en vez de dejar que Express responda un 500.
+ */
+export function subirUnaImagen(campo: string) {
+    const middleware = upload.single(campo);
+
+    return (req: Request, res: Response, next: NextFunction) => {
+        middleware(req, res, (err: unknown) => {
+            if (!err) {
+                return next();
+            }
+
+            if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(HttpStatus.BAD_REQUEST).json({ message: 'La imagen no debe superar los 15 MB' });
+            }
+
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: (err as Error).message });
+        });
+    };
+}

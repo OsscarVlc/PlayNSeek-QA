@@ -1,12 +1,11 @@
 import { Server } from 'socket.io';
-import { socketAuthMiddleware, SocketAutenticado } from './middlewares/socketAuth.middleware';
+import { SocketAutenticado } from './middlewares/socketAuth.middleware';
 import { Grupo } from '../database/mongo/models/grupo.model';
 import { Mensaje } from '../database/mongo/models/mensaje.model';
 import { IMensajeConUsuario } from '../types/mensaje.types';
 
+// La autenticación del socket se registra en sockets/index.ts, una sola vez
 export function configurarChatSocket(io: Server) {
-    io.use(socketAuthMiddleware);
-
     io.on('connection', (socket: SocketAutenticado) => {
         console.log('Cliente conectado al chat:', socket.id, 'usuario:', socket.usuarioId);
 
@@ -36,6 +35,7 @@ export function configurarChatSocket(io: Server) {
 
             const mensajesFormateados = mensajes.map((m) => ({
                 _id: m._id,
+                grupo_id: grupoId,
                 usuario_id: m.usuario_id._id,
                 nombreUsuario: m.usuario_id.nombre,
                 contenido: m.contenido,
@@ -43,6 +43,14 @@ export function configurarChatSocket(io: Server) {
             }));
 
             socket.emit('historial', mensajesFormateados);
+        });
+
+        // El cliente lo emite al salir de la vista del grupo. Como el front
+        // usa una sola conexión para toda la app, sin esto el socket seguiría
+        // en la sala y recibiría mensajes de un grupo que ya no está viendo.
+        socket.on('salir_grupo', (grupoId: string) => {
+            socket.leave(grupoId);
+            console.log(`Usuario ${socket.usuarioId} salió de la sala del grupo ${grupoId}`);
         });
 
         socket.on('mensaje_nuevo', async ({ grupoId, contenido }: { grupoId: string; contenido: string }) => {
@@ -72,8 +80,10 @@ export function configurarChatSocket(io: Server) {
 
             const doc = await nuevoMensaje.save();
 
+            // grupo_id permite al front confirmar a qué grupo pertenece el mensaje
             io.to(grupoId).emit('mensaje_recibido', {
                 _id: doc._id,
+                grupo_id: grupoId,
                 usuario_id: doc.usuario_id,
                 nombreUsuario: socket.nombreUsuario,
                 contenido: doc.contenido,

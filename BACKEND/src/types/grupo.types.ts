@@ -7,4 +7,6 @@ export interface IGrupo {
     lider_id: Types.ObjectId;
     integrantes?: Types.ObjectId[];
     activo?: boolean;
+    imagen?: string; 
+    imagen_public_id?: string; 
 }

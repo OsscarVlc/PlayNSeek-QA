@@ -87,7 +87,7 @@ import { Roles } from '../types/user.types';
 import { quitarMiembroComunidad } from '../database/dgraph/queries/comunidad.queries';
 
 describe('expulsarIntegrante', () => {
-    it('debería devolver 401 si quien lo pide no es líder ni admin', async () => {
+    it('debería devolver 403 si quien lo pide no es líder ni admin', async () => {
         const miId = '123456789012345678901234';
         const liderId = '111111111111111111111111';
         const otroId = '987654321098765432109876';
@@ -111,7 +111,7 @@ describe('expulsarIntegrante', () => {
 
         await expulsarIntegrante(req, res);
 
-        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.status).toHaveBeenCalledWith(403);
         expect(res.json).toHaveBeenCalledWith({
             message: 'Solo el lider del grupo o un administrador pueden expulsar integrantes',
         });
