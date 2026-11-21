@@ -34,7 +34,11 @@ async function main() {
     const server = http.createServer(app);
 
     // se monta Socket.io sobre el servidor de arriba no sobre app
-    const io = new Server(server);
+    const io = new Server(server, {
+        cors: {
+            origin: process.env.FRONT_URL || 'http://localhost:4200',
+        },
+    });
     configurarSockets(io);
 
     server.listen(port, () => {
