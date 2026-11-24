@@ -46,12 +46,12 @@ jobs:
         run: npm run format:check
 
       - name: Tipos (TypeScript)
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       # Gate 3 y 4: todas las pruebas pasan y la cobertura no baja del umbral
       # definido en jest.config.js.
       - name: Pruebas y cobertura (Jest)
-        run: npx jest --coverage --ci
+        run: npm run test:ci
 
       # Gate 5: sin vulnerabilidades críticas en dependencias de producción.
       # Temporalmente no bloquea: se vuelve bloqueante al cerrar PNSQ-30.
@@ -63,6 +63,6 @@ jobs:
       # Solo corre cuando el secreto SONAR_TOKEN está configurado en el repo.
       - name: Análisis SonarCloud
         if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@70bad232163b09d998ea0707ee80c0ec80798c16 # v8.5.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
