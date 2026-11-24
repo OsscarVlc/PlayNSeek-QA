@@ -22,13 +22,13 @@ jobs:
 
     steps:
       - name: Descargar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # SonarCloud necesita el historial completo para atribuir los cambios.
           fetch-depth: 0
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -53,16 +53,14 @@ jobs:
       - name: Pruebas y cobertura (Jest)
         run: npm run test:ci
 
-      # Gate 5: sin vulnerabilidades críticas en dependencias de producción.
-      # Temporalmente no bloquea: se vuelve bloqueante al cerrar PNSQ-30.
+      # Gate 5: sin vulnerabilidades altas ni críticas en dependencias de producción.
       - name: Auditoría de dependencias (npm audit)
-        run: npm audit --omit=dev --audit-level=critical
-        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
 
       # Gate 6: análisis estático en SonarCloud con la cobertura de Jest.
-      # Solo corre cuando el secreto SONAR_TOKEN está configurado en el repo.
+      # El plan gratuito solo analiza PRs y la rama main.
       - name: Análisis SonarCloud
-        if: env.SONAR_TOKEN != ''
+        if: env.SONAR_TOKEN != '' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
         uses: SonarSource/sonarqube-scan-action@70bad232163b09d998ea0707ee80c0ec80798c16 # v8.5.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
