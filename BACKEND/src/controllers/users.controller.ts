@@ -76,10 +76,7 @@ async function buscarUsuarioPorId(id: Types.ObjectId, res: Response) {
  * Sincroniza la lista actual de juegos_activos del usuario con Dgraph.
  * No bloquea el flujo si falla, solo lo deja registrado en consola.
  */
-async function sincronizarJuegosDelUsuarioEnDgraph(
-    usuarioId: string,
-    juegosActivos: { juego_id: Types.ObjectId }[],
-) {
+async function sincronizarJuegosDelUsuarioEnDgraph(usuarioId: string, juegosActivos: { juego_id: Types.ObjectId }[]) {
     try {
         const idsJuegos = juegosActivos.map((j) => j.juego_id.toString());
         await sincronizarJuegosUsuario(usuarioId, idsJuegos);
@@ -303,7 +300,10 @@ export async function listarUsuarios(req: Request, res: Response) {
 
         const usuariosActivos = req.query.incluirInactivos === 'true' ? {} : { isActive: true };
 
-        const usuarios = await User.find(usuariosActivos).select(CAMPOS_USUARIO_SIN_CONTRASENA).skip(skip).limit(limite);
+        const usuarios = await User.find(usuariosActivos)
+            .select(CAMPOS_USUARIO_SIN_CONTRASENA)
+            .skip(skip)
+            .limit(limite);
         const total = await User.countDocuments(usuariosActivos);
 
         res.json({

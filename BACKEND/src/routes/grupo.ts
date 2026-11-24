@@ -10,7 +10,7 @@ import {
     expulsarIntegrante,
     transferirLiderazgo,
     subirPortada,
-    eliminarPortada
+    eliminarPortada,
 } from '../controllers/grupo.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { subirUnaImagen } from '../middlewares/upload.middleware';
@@ -239,7 +239,6 @@ router.delete('/:id/integrantes', authMiddleware, expulsarIntegrante);
  *         description: El nuevo líder debe ser miembro del grupo.
  */
 router.patch('/:id/transferir-liderazgo', authMiddleware, transferirLiderazgo);
-
 
 /**
  * @swagger

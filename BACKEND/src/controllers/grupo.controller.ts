@@ -68,8 +68,6 @@ function puedeExpulsar(liderId: Types.ObjectId, usuario: UsuarioAutenticado): bo
     return esLider || esAdmin;
 }
 
-
-
 /**
  * Determina si un usuario puede gestionar la portada de un grupo:
  * solo el líder del grupo, o cualquier administrador.
@@ -79,8 +77,6 @@ function puedeGestionarPortada(liderId: Types.ObjectId, usuario: UsuarioAutentic
     const esAdmin = usuario.rol === Roles.ADMIN;
     return esLider || esAdmin;
 }
-
-
 
 /**
  * Sincroniza la expulsión de un integrante con Dgraph.
@@ -408,8 +404,6 @@ export async function transferirLiderazgo(req: AuthRequest, res: Response) {
         manejarErrorControlador(err, res);
     }
 }
-
-
 
 // POST /grupo/:id/imagen  (multipart/form-data, campo "imagen")
 // Sube o reemplaza la portada del grupo. Solo el líder o un administrador.

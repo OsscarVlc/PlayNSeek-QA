@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
+    "test:ci": "jest --coverage --ci",
     "scripts": "tsc",
     "styles": "sass src/styles:public/styles",
     "build": "npm run scripts && copyfiles -u 1 \"public/**/*\" dist && copyfiles -u 1 \"src/database/dgraph/schemas/**/*\" dist",
@@ -13,6 +14,7 @@
     "dev": "nodemon src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "postinstall": "npm run build:clean",
