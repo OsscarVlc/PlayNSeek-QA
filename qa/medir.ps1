@@ -50,7 +50,8 @@ Paso 'Escribiendo qa\.env.qa'
     'JWT_SECRET=jwt-secret-solo-para-el-entorno-de-qa',
     'PORT=3000',
     'APP_URL=http://localhost:3000',
-    'FRONT_URL=http://localhost:4200'
+    'FRONT_URL=http://localhost:4200',
+    'QA_PASSWORD=PruebaQA123!'
 ) | Set-Content -Encoding ascii (Join-Path $Qa '.env.qa')
 $env:DOTENV_CONFIG_PATH = Join-Path $Qa '.env.qa'
 

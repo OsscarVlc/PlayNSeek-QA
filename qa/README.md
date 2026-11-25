@@ -46,7 +46,7 @@ npx ts-node --transpile-only scripts/seed-qa.ts
 cd ..
 ```
 
-Todos los usuarios usan la contraseña `PruebaQA123!`. El administrador es `admin@qa.playnseek.test`.
+Todos los usuarios usan la contraseña definida en `QA_PASSWORD` dentro de `qa/.env.qa`. El administrador es `admin@qa.playnseek.test`.
 
 ### 3. Levantar la versión a medir
 

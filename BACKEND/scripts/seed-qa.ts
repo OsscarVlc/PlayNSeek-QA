@@ -22,7 +22,12 @@ import { crearJuegoEnDgraph } from '../src/database/dgraph/queries/juego.queries
 import { sincronizarUsuarioConDgraph } from '../src/services/dgraphSync.service';
 import { Idioma, Plataforma, Roles } from '../src/types/user.types';
 
-export const PASSWORD_QA = 'PruebaQA123!';
+/** La contraseña de los usuarios de prueba viene del entorno (qa/.env.qa), no del código. */
+function leerPasswordQa(): string {
+    const password = process.env.QA_PASSWORD;
+    if (!password) throw new Error('Falta QA_PASSWORD en las variables de entorno (qa/.env.qa)');
+    return password;
+}
 const TOTAL_JUEGOS = 20;
 const TOTAL_USUARIOS = 50;
 const TOTAL_GRUPOS = 10;
@@ -81,7 +86,8 @@ async function main() {
 
     // Usuarios -------------------------------------------------------------------------------
     // Un solo hash para todos: bcrypt es lento a propósito y no queremos esperar 50 veces.
-    const hash = await bcrypt.hash(PASSWORD_QA, 10);
+    const passwordQa = leerPasswordQa();
+    const hash = await bcrypt.hash(passwordQa, 10);
     const usuarios = [];
     for (let i = 0; i < TOTAL_USUARIOS; i++) {
         const idiomas = [ciclico(IDIOMAS, i)];
@@ -110,7 +116,7 @@ async function main() {
         });
         usuarios.push(usuario);
     }
-    console.log(`${usuarios.length} usuarios creados (contraseña de todos: ${PASSWORD_QA})`);
+    console.log(`${usuarios.length} usuarios creados (contraseña: la de QA_PASSWORD)`);
 
     // Grupos ---------------------------------------------------------------------------------
     for (let i = 0; i < TOTAL_GRUPOS; i++) {
