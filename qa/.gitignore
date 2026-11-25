@@ -1,0 +1,6 @@
+# Resultados generados por JMeter y ZAP (se resumen en el documento, no se versionan)
+resultados/
+jmeter/*.jtl
+jmeter/reporte-*/
+jmeter/jmeter.log
+zap/

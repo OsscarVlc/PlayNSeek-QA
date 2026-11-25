@@ -1,0 +1,37 @@
+# Entorno local para pruebas de rendimiento (JMeter) y seguridad (OWASP ZAP).
+# Bases de datos propias y desechables: no toca Atlas ni los datos de desarrollo.
+#
+# Uso (desde la raíz del repo):
+#   docker compose -f qa/docker-compose.qa.yml up -d
+#   docker compose -f qa/docker-compose.qa.yml down -v   (borra todo al terminar)
+name: playnseek-qa
+
+services:
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_qa:/data/db
+
+  zero:
+    image: dgraph/dgraph:latest
+    volumes:
+      - dgraph_qa:/dgraph
+    ports:
+      - "5080:5080"
+      - "6080:6080"
+    command: dgraph zero --my=zero:5080
+
+  alpha:
+    image: dgraph/dgraph:latest
+    volumes:
+      - dgraph_qa:/dgraph
+    ports:
+      - "8080:8080"
+      - "9080:9080"
+    command: dgraph alpha --my=alpha:7080 --zero=zero:5080 --security whitelist=0.0.0.0/0
+
+volumes:
+  mongo_qa:
+  dgraph_qa:
