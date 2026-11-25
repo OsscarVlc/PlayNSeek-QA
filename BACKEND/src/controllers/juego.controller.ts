@@ -4,6 +4,7 @@ import { HttpStatus } from '../types/https-status';
 import { Juego } from '../database/mongo/models/juego.model';
 import { IJuego } from '../types/juego.types';
 import { crearJuegoEnDgraph, actualizarJuegoEnDgraph } from '../database/dgraph/queries/juego.queries';
+import { leerEnteroPositivo } from '../utils/entrada';
 
 // agregamos constantes para resolver warnings con eslint
 const MSG_ERROR_SERVIDOR = 'Error del servidor';
@@ -40,7 +41,8 @@ export async function previsualizarJuego(req: Request, res: Response) {
 
 export async function crearJuego(req: Request, res: Response) {
     try {
-        const { id } = req.body;
+        // id_api de RAWG: solo un entero positivo. También evita que se arme una URL arbitraria hacia RAWG.
+        const id = leerEnteroPositivo(req.body.id);
 
         if (!id) {
             return res.status(HttpStatus.BAD_REQUEST).json({

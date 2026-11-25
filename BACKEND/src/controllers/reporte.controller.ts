@@ -4,6 +4,9 @@ import { HttpStatus } from '../types/https-status';
 import { Reporte } from '../database/mongo/models/reporte.model';
 import { IReporte } from '../types/reporte.types';
 import { estadoReporte } from '../types/reporte.types';
+import { leerEnteroPositivo, leerOpcion } from '../utils/entrada';
+
+const LIMITE_MAXIMO = 50;
 
 const MSG_NO_AUTENTICADO = 'No autenticado';
 const MSG_ID_INVALIDO = 'Id Invalido';
@@ -65,13 +68,19 @@ export async function listarReportes(req: AuthRequest, res: Response) {
             return res.status(HttpStatus.UNAUTHORIZED).json({ message: MSG_NO_AUTENTICADO });
         }
 
-        const pagina = Number(req.query.pagina) || 1;
-        const limite = Number(req.query.limite) || 10;
+        const pagina = leerEnteroPositivo(req.query.pagina) ?? 1;
+        // Tope de 50 por página para que nadie pida miles de reportes de un golpe
+        const limite = Math.min(leerEnteroPositivo(req.query.limite) ?? 10, LIMITE_MAXIMO);
         const skip = (pagina - 1) * limite;
 
         const filtro: FiltroReporte = {};
-        if (req.query.estado) {
-            filtro.estado = req.query.estado as estadoReporte;
+        if (req.query.estado !== undefined) {
+            // Solo valores del enum: evita filtros como ?estado[$ne]=pendiente
+            const estado = leerOpcion(req.query.estado, Object.values(estadoReporte));
+            if (!estado) {
+                return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Estado de reporte inválido' });
+            }
+            filtro.estado = estado;
         }
 
         const reportes = await Reporte.find(filtro)
