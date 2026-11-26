@@ -6,11 +6,15 @@ import routes from './routes';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import { inyectarUsuarioEnVistas } from './middlewares/auth-vistas.middleware';
+import { cabecerasDeSeguridad } from './middlewares/seguridad.middleware';
 
 let app: express.Express;
 
 export function createApp() {
     app = express();
+
+    // Cabeceras de seguridad (CSP, anti-clickjacking, etc.) antes que cualquier otra ruta
+    app.use(cabecerasDeSeguridad);
 
     // Permite que el front en Angular (otro origen) llame a esta API.
     // El origen sale de una variable de entorno; en desarrollo es el puerto 4200.
