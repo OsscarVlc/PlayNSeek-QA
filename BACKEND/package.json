@@ -7,7 +7,6 @@
     "test": "jest",
     "test:ci": "jest --coverage --ci",
     "scripts": "tsc",
-    "styles": "sass src/styles:public/styles",
     "build": "npm run scripts && copyfiles -u 1 \"public/**/*\" dist && copyfiles -u 1 \"src/database/dgraph/schemas/**/*\" dist",
     "build:clean": "rimraf dist && tsc",
     "start": "node .",
@@ -18,20 +17,21 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "postinstall": "npm run build:clean",
-    "precommit": "eslint && jest && build"
+    "precommit": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "prepare": "cd .. && husky BACKEND/.husky"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SergioABC123/Proyecto-Servidor.git"
+    "url": "git+https://github.com/OsscarVlc/PlayNSeek-QA.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/SergioABC123/Proyecto-Servidor/issues"
+    "url": "https://github.com/OsscarVlc/PlayNSeek-QA/issues"
   },
-  "homepage": "https://github.com/SergioABC123/Proyecto-Servidor#readme",
+  "homepage": "https://github.com/OsscarVlc/PlayNSeek-QA#readme",
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
     "bcrypt": "^6.0.0",
@@ -75,6 +75,7 @@
     "eslint-plugin-jsdoc": "^63.3.3",
     "eslint-plugin-sonarjs": "^4.2.0",
     "globals": "^17.7.0",
+    "husky": "^9.1.7",
     "jest": "^30.4.2",
     "jiti": "^2.7.0",
     "nodemon": "^3.1.14",
