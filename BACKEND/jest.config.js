@@ -15,7 +15,7 @@ module.exports = {
 
   // Medimos la cobertura sobre TODO el código fuente, no solo sobre los
   // archivos que algún test importa. Sin esto, la cobertura sale inflada.
-  collectCoverageFrom: ["src/**/*.ts", "!src/**/*.test.ts"],
+  collectCoverageFrom: ["src/**/*.ts", "!src/**/*.test.ts", "!src/**/*.test-utils.ts"],
   // text-summary para la consola, lcov para SonarCloud.
   coverageReporters: ["text-summary", "lcov"],
 

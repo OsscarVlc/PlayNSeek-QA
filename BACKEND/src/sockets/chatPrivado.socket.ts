@@ -4,7 +4,7 @@ import { Mensaje } from '../database/mongo/models/mensaje.model';
 import { obtenerMatchesDeUsuario } from '../database/dgraph/queries/match.queries';
 
 export function nombreSalaPrivada(idA: string, idB: string): string {
-    return `privado_${[idA, idB].sort().join('_')}`;
+    return `privado_${[idA, idB].sort((a, b) => a.localeCompare(b)).join('_')}`;
 }
 
 export function configurarChatPrivadoSocket(io: Server) {
@@ -21,7 +21,7 @@ export function configurarChatPrivadoSocket(io: Server) {
             }
 
             const sala = nombreSalaPrivada(socket.usuarioId, otroUsuarioId);
-            socket.join(sala);
+            await socket.join(sala);
 
             const mensajes = await Mensaje.find({
                 $or: [
