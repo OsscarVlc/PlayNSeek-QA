@@ -21,7 +21,7 @@ export function configurarChatPrivadoSocket(io: Server) {
             }
 
             const sala = nombreSalaPrivada(socket.usuarioId, otroUsuarioId);
-            socket.join(sala);
+            await socket.join(sala);
 
             const mensajes = await Mensaje.find({
                 $or: [
