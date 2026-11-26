@@ -168,7 +168,7 @@ async function cargarMatches() {
                     </div>
                     <div class="opciones-match mt-2 d-flex gap-2" style="display: none;">
                         <a href="/chat/${match.companero.mongo_id}" class="btn btn-sm btn-primary">Chatear</a>
-                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalReportar('${match.companero.mongo_id}')">Reportar</button>
+                        <button class="btn btn-sm btn-outline-danger btn-reportar-match" data-id="${match.companero.mongo_id}">Reportar</button>
                         <button class="btn btn-sm btn-outline-secondary btn-eliminar-amigo" data-id="${match.companero.mongo_id}">Eliminar de amigos</button>
                     </div>
                 </div>
@@ -183,6 +183,14 @@ async function cargarMatches() {
             if (e.target.closest('a, button')) return;
             const opciones = card.querySelector('.opciones-match');
             opciones.style.display = opciones.style.display === 'none' ? 'flex' : 'none';
+        });
+    });
+
+    // Reportar: listener en lugar de onclick inline, que la Content-Security-Policy bloquea
+    document.querySelectorAll('.btn-reportar-match').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            abrirModalReportar(btn.dataset.id);
         });
     });
 
