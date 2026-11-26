@@ -1,0 +1,2 @@
+# Antes de cada commit: lint, formato, tipos y pruebas del backend (PNSQ-36)
+cd BACKEND && npm run precommit
