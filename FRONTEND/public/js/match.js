@@ -69,7 +69,7 @@ async function cargarRecomendaciones() {
 
             if (data.match) {
                 alert('¡Es un match!');
-                cargarMatches();
+                await cargarMatches();
             } else {
                 btn.textContent = 'Solicitud enviada';
             }
@@ -136,8 +136,8 @@ async function cargarSolicitudes() {
             }
 
             alert(data.message);
-            cargarSolicitudes();
-            if (respuesta === 'aceptar') cargarMatches();
+            await cargarSolicitudes();
+            if (respuesta === 'aceptar') await cargarMatches();
         });
     });
 }
@@ -212,11 +212,16 @@ async function cargarMatches() {
                 return;
             }
 
-            cargarMatches();
+            await cargarMatches();
         });
     });
 }
 
-cargarRecomendaciones();
-cargarSolicitudes();
-cargarMatches();
+// Carga inicial: si alguna falla, el error queda registrado en la consola en vez de perderse
+function registrarErrorDeCarga(error) {
+    console.error('No se pudo cargar la información de la página:', error);
+}
+
+cargarRecomendaciones().catch(registrarErrorDeCarga);
+cargarSolicitudes().catch(registrarErrorDeCarga);
+cargarMatches().catch(registrarErrorDeCarga);

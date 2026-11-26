@@ -49,4 +49,6 @@ async function cargarReportes() {
     });
 }
 
-cargarReportes();
+cargarReportes().catch((error) => {
+    console.error('No se pudieron cargar los reportes:', error);
+});
