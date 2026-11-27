@@ -23,10 +23,17 @@ test.describe('Recursos de las páginas', () => {
     for (const ruta of ['/', '/login', '/juegos', '/grupos']) {
         test(`${ruta} no pide recursos propios que no existen`, async ({ page, baseURL }) => {
             const rotos: string[] = [];
+            const esPropio = (url: string) => url.startsWith(baseURL ?? '') && !url.endsWith('/favicon.ico');
             page.on('response', (res) => {
-                const esPropio = res.url().startsWith(baseURL ?? '');
-                if (esPropio && res.status() >= 400 && !res.url().endsWith('/favicon.ico')) {
+                if (esPropio(res.url()) && res.status() >= 400) {
                     rotos.push(`${res.status()} ${res.url()}`);
+                }
+            });
+            // Express responde el 404 como text/html con nosniff: Chrome aborta la carga de la hoja
+            // de estilos y Playwright no emite 'response', solo 'requestfailed'.
+            page.on('requestfailed', (req) => {
+                if (esPropio(req.url())) {
+                    rotos.push(`${req.failure()?.errorText ?? 'fallida'} ${req.url()}`);
                 }
             });
 

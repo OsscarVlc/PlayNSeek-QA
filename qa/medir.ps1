@@ -41,6 +41,13 @@ function Esperar-Url($url, $segundos) {
     throw "No respondio $url despues de $segundos segundos"
 }
 
+# Procesos que escuchan en el puerto 3000. Si hay otro servidor ahi, las pruebas
+# podrian medir ese servidor y no el codigo de la etapa.
+function Duenos-Puerto3000 {
+    @(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty OwningProcess -Unique)
+}
+
 if (-not (Test-Path $JMeter)) { throw "No encontre JMeter en $JMeter" }
 New-Item -ItemType Directory -Force -Path $Salida | Out-Null
 
@@ -105,21 +112,53 @@ npm run build
 Revisar 'npm run build'
 
 Paso 'Arrancando el servidor'
+if ((Duenos-Puerto3000).Count -gt 0) {
+    throw "El puerto 3000 ya esta ocupado (proceso $(Duenos-Puerto3000)). Cierra ese servidor y vuelve a correr el script."
+}
+# -WorkingDirectory explicito: Start-Process no siempre toma la carpeta de Push-Location
+# y podria arrancar el dist/ de otra copia del codigo.
 $servidor = Start-Process -FilePath 'node' -ArgumentList 'dist/index.js' -PassThru -NoNewWindow `
+    -WorkingDirectory (Join-Path $Codigo 'BACKEND') `
     -RedirectStandardOutput (Join-Path $Salida 'servidor.log') `
     -RedirectStandardError (Join-Path $Salida 'servidor-error.log')
 Pop-Location
 
 try {
-    Esperar-Url 'http://localhost:3000/' 60
+    # Se usa 127.0.0.1 y no localhost: en Windows localhost puede resolver a IPv6 (::1)
+    # y llegar a un proceso distinto al que levanto este script.
+    Esperar-Url 'http://127.0.0.1:3000/' 60
+    $duenos = Duenos-Puerto3000
+    if ($duenos.Count -ne 1) { throw "Mas de un proceso escucha en el puerto 3000: $duenos" }
+
+    # Huella del servidor medido: deja evidencia de que version del codigo respondio.
+    $login = Invoke-WebRequest -Uri 'http://127.0.0.1:3000/login' -UseBasicParsing
+    try {
+        $css = (Invoke-WebRequest -Uri 'http://127.0.0.1:3000/styles/main.css' -UseBasicParsing).StatusCode
+    } catch { $css = [int]$_.Exception.Response.StatusCode }
+    $huella = Join-Path $Salida 'huella.txt'
+    @(
+        "Etapa: $Etapa",
+        "Codigo: $Codigo",
+        "Commit: $(git -C $Codigo rev-parse --short HEAD)",
+        "Proceso en el puerto 3000: $duenos (servidor lanzado: $($servidor.Id))",
+        "Cabecera CSP en /login: $([bool]$login.Headers['Content-Security-Policy'])",
+        "Layout enlaza /styles/main.css: $($login.Content -match 'styles/main.css')",
+        "GET /styles/main.css: $css"
+    ) | Set-Content -Encoding ascii $huella
+    Get-Content $huella
 
     # 5. Rendimiento ---------------------------------------------------------------------
     Paso 'Prueba de rendimiento con JMeter (50 usuarios)'
     $reporte = Join-Path $Salida 'jmeter-reporte'
+    $jtl = Join-Path $Salida 'jmeter.jtl'
+    # JMeter se niega a correr si el .jtl de una medicion anterior sigue ahi.
     if (Test-Path $reporte) { Remove-Item -Recurse -Force $reporte }
-    & $JMeter -n -t (Join-Path $Qa 'jmeter\plan-rendimiento.jmx') `
-        -l (Join-Path $Salida 'jmeter.jtl') -j (Join-Path $Salida 'jmeter.log') -e -o $reporte
+    if (Test-Path $jtl) { Remove-Item -Force $jtl }
+    & $JMeter -n -t (Join-Path $Qa 'jmeter\plan-rendimiento.jmx') '-Jhost=127.0.0.1' `
+        -l $jtl -j (Join-Path $Salida 'jmeter.log') -e -o $reporte
     Revisar 'JMeter'
+    # jmeter.bat puede terminar con codigo 0 aunque falle: se confirma que genero resultados.
+    if (-not (Test-Path (Join-Path $reporte 'index.html'))) { throw 'JMeter no genero el reporte; revisa jmeter.log' }
 
     # 6. Seguridad -----------------------------------------------------------------------
     # ZAP escribe en una carpeta temporal sin espacios ni acentos y luego copiamos el resultado.
@@ -141,6 +180,7 @@ try {
     npx playwright install chromium
     Revisar 'playwright install'
     $env:E2E_REPORTE = Join-Path $Salida 'e2e-reporte'
+    $env:BASE_URL = 'http://127.0.0.1:3000'
     npx playwright test | Tee-Object -FilePath (Join-Path $Salida 'e2e.txt')
     Pop-Location
 }
