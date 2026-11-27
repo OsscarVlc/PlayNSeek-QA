@@ -9,13 +9,14 @@ sobre el backend de Play N Seek, con bases de datos locales y desechables.
 | `.env.qa` | Variables del backend para este entorno (sin secretos reales) |
 | `../BACKEND/scripts/seed-qa.ts` | Datos de prueba: 20 juegos, 50 usuarios confirmados, 10 grupos |
 | `jmeter/plan-rendimiento.jmx` | 50 usuarios concurrentes: login, catálogo, grupos, perfil y recomendaciones |
+| `e2e/` | Pruebas de sistema con Playwright: sesión, navegación, recursos rotos y CSP en el navegador |
 
 Requisitos: Docker Desktop, Node.js 22 y Apache JMeter 5.6.3. Los comandos son para **PowerShell**,
 desde la raíz del repositorio.
 
 ## Forma rápida
 
-`medir.ps1` hace todos los pasos de abajo y deja los resultados en `qa\resultados\<etapa>\`:
+`medir.ps1` hace todos los pasos de abajo (incluidas las pruebas de Playwright) y deja los resultados en `qa\resultados\<etapa>\`:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File qa\medir.ps1 -Etapa antes     # línea base (commit 1aaaa1a)

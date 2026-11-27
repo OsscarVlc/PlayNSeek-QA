@@ -1,5 +1,6 @@
 <#
-  Mide rendimiento (JMeter) y seguridad (OWASP ZAP) del backend de Play N Seek
+  Mide rendimiento (JMeter), seguridad (OWASP ZAP) y pruebas de sistema (Playwright)
+  del backend de Play N Seek
   en un entorno local y desechable.
 
   Uso (PowerShell, desde la raiz del repo):
@@ -129,6 +130,19 @@ try {
         zap-baseline.py -t http://host.docker.internal:3000 -r zap.html -J zap.json -I
     # ZAP devuelve codigo distinto de 0 cuando encuentra alertas: eso es un resultado, no un error.
     Copy-Item (Join-Path $tmpZap 'zap.*') $Salida -Force
+
+    # 7. Pruebas de sistema --------------------------------------------------------------
+    # Corren contra el servidor levantado. Si alguna falla, es un resultado de la medicion,
+    # no un error del script: el reporte queda en e2e-reporte\index.html.
+    Paso 'Pruebas de sistema con Playwright'
+    $e2e = Join-Path $Qa 'e2e'
+    Push-Location $e2e
+    if (-not (Test-Path 'node_modules')) { npm ci; Revisar 'npm ci (e2e)' }
+    npx playwright install chromium
+    Revisar 'playwright install'
+    $env:E2E_REPORTE = Join-Path $Salida 'e2e-reporte'
+    npx playwright test | Tee-Object -FilePath (Join-Path $Salida 'e2e.txt')
+    Pop-Location
 }
 finally {
     Paso 'Deteniendo el servidor'
