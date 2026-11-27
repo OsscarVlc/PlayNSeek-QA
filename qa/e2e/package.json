@@ -1,0 +1,14 @@
+{
+  "name": "playnseek-e2e",
+  "private": true,
+  "description": "Pruebas de sistema (end-to-end) de Play N Seek con Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "reporte": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.11",
+    "dotenv": "^18.0.10"
+  }
+}
