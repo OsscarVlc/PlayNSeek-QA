@@ -62,4 +62,16 @@ describe('configurarChatSocket: unirse_grupo', () => {
             { _id: 'm1', grupo_id: idGrupo, usuario_id: idOscar, nombreUsuario: 'Oscar', contenido: 'hola', fecha },
         ]);
     });
+
+    it('debería sacar el socket de la sala al salir del grupo', async () => {
+        // Arrange
+        const { socket, io, emitirDesdeCliente } = crearSocketFalso({ usuarioId: idOscar, rol: 'usuario' });
+        configurarChatSocket(io);
+
+        // Act
+        await emitirDesdeCliente('salir_grupo', idGrupo);
+
+        // Assert
+        expect(socket.leave).toHaveBeenCalledWith(idGrupo);
+    });
 });
