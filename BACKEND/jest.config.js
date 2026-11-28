@@ -23,10 +23,10 @@ module.exports = {
   // valores. Arrancan en la línea base y se suben conforme agregamos pruebas.
   coverageThreshold: {
     global: {
-      lines: 26,
-      statements: 26,
-      branches: 21,
-      functions: 28,
+      lines: 43,
+      statements: 42,
+      branches: 28,
+      functions: 39,
     },
   },
 };
