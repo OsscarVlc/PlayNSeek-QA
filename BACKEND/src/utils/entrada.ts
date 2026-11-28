@@ -1,3 +1,5 @@
+import { isValidObjectId } from 'mongoose';
+
 // Lectura segura de datos que llegan del cliente (req.body, req.query, req.params).
 //
 // Express entrega lo que el cliente mande: si en vez de un texto llega un objeto como
@@ -10,6 +12,12 @@ export function leerTexto(valor: unknown): string | null {
     if (typeof valor !== 'string') return null;
     const texto = valor.trim();
     return texto === '' ? null : texto;
+}
+
+/** Devuelve el ObjectId como texto si tiene un formato válido. */
+export function leerObjectId(valor: unknown): string | null {
+    const texto = leerTexto(valor);
+    return texto !== null && isValidObjectId(texto) ? texto : null;
 }
 
 /** Devuelve un entero positivo; acepta number o texto numérico ("42"). */

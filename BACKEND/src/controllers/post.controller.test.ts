@@ -9,14 +9,51 @@ jest.mock('../database/mongo/models/grupo.model');
 
 // Helper: simula la cadena Post.find(...).skip(...).limit(...)
 function mockPostFindChain(resultado: any[]) {
-    (Post.find as jest.Mock).mockReturnValue({
-        skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockResolvedValue(resultado),
-        }),
-    });
+    const limit = jest.fn().mockResolvedValue(resultado);
+    const skip = jest.fn().mockReturnValue({ limit });
+    (Post.find as jest.Mock).mockReturnValue({ skip });
+    return { skip, limit };
 }
 
 describe('listarPosts', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it.each([{ $ne: null }, 'id-invalido'])('rechaza el grupo %p antes de consultar los modelos', async (valor) => {
+        // Arrange
+        const req = {
+            user: { _id: 'miId', rol: 'usuario' },
+            query: { grupo_id: valor },
+        } as unknown as AuthRequest;
+        const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as unknown as Response;
+
+        // Act
+        await listarPosts(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(Grupo.findById).not.toHaveBeenCalled();
+        expect(Post.find).not.toHaveBeenCalled();
+        expect(Post.countDocuments).not.toHaveBeenCalled();
+    });
+
+    it('usa la primera página y limita a 50 al listar sin grupo', async () => {
+        // Arrange
+        const req = { query: { pagina: '-1', limite: '51' } } as unknown as AuthRequest;
+        const res = { json: jest.fn() } as unknown as Response;
+        const { skip, limit } = mockPostFindChain([]);
+        (Post.countDocuments as jest.Mock).mockResolvedValueOnce(51);
+
+        // Act
+        await listarPosts(req, res);
+
+        // Assert
+        expect(Grupo.findById).not.toHaveBeenCalled();
+        expect(Post.find).toHaveBeenCalledWith({ activo: true });
+        expect(skip).toHaveBeenCalledWith(0);
+        expect(limit).toHaveBeenCalledWith(50);
+        expect(res.json).toHaveBeenCalledWith({ data: [], pagina: 1, totalPaginas: 2, total: 51 });
+    });
+
     it('debería rechazar con 401 si filtra por grupo_id sin estar autenticado', async () => {
         // Arrange
         const req = {
@@ -86,9 +123,10 @@ describe('listarPosts', () => {
 
     it('debería permitir ver los posts si es integrante del grupo', async () => {
         // Arrange
+        const grupoId = '111111111111111111111111';
         const req = {
             user: { _id: 'miId', rol: 'usuario' },
-            query: { grupo_id: '111111111111111111111111' },
+            query: { grupo_id: ` ${grupoId} `, pagina: '2', limite: '5' },
         } as unknown as AuthRequest;
 
         const res = {
@@ -101,13 +139,18 @@ describe('listarPosts', () => {
             integrantes: [{ toString: () => 'miId' }], // sí incluye a "miId"
         });
 
-        mockPostFindChain([{ contenido: 'Hola grupo' }]);
+        const { skip, limit } = mockPostFindChain([{ contenido: 'Hola grupo' }]);
         (Post.countDocuments as jest.Mock).mockResolvedValueOnce(1);
 
         // Act
         await listarPosts(req, res);
 
         // Assert
+        expect(Grupo.findById).toHaveBeenCalledWith(grupoId);
+        expect(Post.find).toHaveBeenCalledWith({ activo: true, grupo_id: grupoId });
+        expect(Post.countDocuments).toHaveBeenCalledWith({ activo: true, grupo_id: grupoId });
+        expect(skip).toHaveBeenCalledWith(5);
+        expect(limit).toHaveBeenCalledWith(5);
         expect(res.json).toHaveBeenCalledWith(
             expect.objectContaining({ data: [{ contenido: 'Hola grupo' }], total: 1 }),
         );
