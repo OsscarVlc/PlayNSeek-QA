@@ -16,7 +16,7 @@ export function crearSocketFalso(datos: { usuarioId?: string; rol?: string } = {
         }),
         emit: jest.fn(),
         join: jest.fn().mockResolvedValue(undefined),
-        leave: jest.fn(),
+        leave: jest.fn().mockResolvedValue(undefined),
     };
     const io = {
         on: jest.fn((_evento: string, alConectar: (s: typeof socket) => void) => alConectar(socket)),

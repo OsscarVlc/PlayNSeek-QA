@@ -48,8 +48,8 @@ export function configurarChatSocket(io: Server) {
         // El cliente lo emite al salir de la vista del grupo. Como el front
         // usa una sola conexión para toda la app, sin esto el socket seguiría
         // en la sala y recibiría mensajes de un grupo que ya no está viendo.
-        socket.on('salir_grupo', (grupoId: string) => {
-            socket.leave(grupoId);
+        socket.on('salir_grupo', async (grupoId: string) => {
+            await socket.leave(grupoId);
             console.log(`Usuario ${socket.usuarioId} salió de la sala del grupo ${grupoId}`);
         });
 
