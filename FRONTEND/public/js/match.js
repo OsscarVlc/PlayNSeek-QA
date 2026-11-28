@@ -69,7 +69,7 @@ async function cargarRecomendaciones() {
 
             if (data.match) {
                 alert('¡Es un match!');
-                cargarMatches();
+                await cargarMatches();
             } else {
                 btn.textContent = 'Solicitud enviada';
             }
@@ -136,8 +136,8 @@ async function cargarSolicitudes() {
             }
 
             alert(data.message);
-            cargarSolicitudes();
-            if (respuesta === 'aceptar') cargarMatches();
+            await cargarSolicitudes();
+            if (respuesta === 'aceptar') await cargarMatches();
         });
     });
 }
@@ -168,7 +168,7 @@ async function cargarMatches() {
                     </div>
                     <div class="opciones-match mt-2 d-flex gap-2" style="display: none;">
                         <a href="/chat/${match.companero.mongo_id}" class="btn btn-sm btn-primary">Chatear</a>
-                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalReportar('${match.companero.mongo_id}')">Reportar</button>
+                        <button class="btn btn-sm btn-outline-danger btn-reportar-match" data-id="${match.companero.mongo_id}">Reportar</button>
                         <button class="btn btn-sm btn-outline-secondary btn-eliminar-amigo" data-id="${match.companero.mongo_id}">Eliminar de amigos</button>
                     </div>
                 </div>
@@ -183,6 +183,14 @@ async function cargarMatches() {
             if (e.target.closest('a, button')) return;
             const opciones = card.querySelector('.opciones-match');
             opciones.style.display = opciones.style.display === 'none' ? 'flex' : 'none';
+        });
+    });
+
+    // Reportar: listener en lugar de onclick inline, que la Content-Security-Policy bloquea
+    document.querySelectorAll('.btn-reportar-match').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            abrirModalReportar(btn.dataset.id);
         });
     });
 
@@ -204,11 +212,16 @@ async function cargarMatches() {
                 return;
             }
 
-            cargarMatches();
+            await cargarMatches();
         });
     });
 }
 
-cargarRecomendaciones();
-cargarSolicitudes();
-cargarMatches();
+// Carga inicial: si alguna falla, el error queda registrado en la consola en vez de perderse
+function registrarErrorDeCarga(error) {
+    console.error('No se pudo cargar la información de la página:', error);
+}
+
+cargarRecomendaciones().catch(registrarErrorDeCarga);
+cargarSolicitudes().catch(registrarErrorDeCarga);
+cargarMatches().catch(registrarErrorDeCarga);

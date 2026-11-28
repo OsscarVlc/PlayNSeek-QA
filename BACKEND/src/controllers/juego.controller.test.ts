@@ -21,6 +21,21 @@ describe('crearJuego', () => {
         expect(res.json).toHaveBeenCalledWith({ message: 'No ingresaste un ID' });
     });
 
+    it('deberia rechazar con 400 un id con operador de MongoDB sin consultar la base (PNSQ-39)', async () => {
+        jest.clearAllMocks();
+        const req = { body: { id: { $gt: 0 } } } as unknown as Request;
+        const res = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+        } as unknown as Response;
+
+        await crearJuego(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(Juego.findOne).not.toHaveBeenCalled();
+        expect(obtenerDetalleJuegoRAWG).not.toHaveBeenCalled();
+    });
+
     it('deberia rechazar con 400 si el juego ya existe y esta activo', async () => {
         const req = { body: { id: 415171 } } as unknown as Request;
         const res = {

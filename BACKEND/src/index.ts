@@ -46,4 +46,9 @@ async function main() {
     });
 }
 
-main();
+// Si el arranque falla (por ejemplo, sin conexión a MongoDB), lo registramos y terminamos
+// con código 1 para que PM2 reinicie el proceso en lugar de dejarlo vivo sin servir.
+main().catch((error) => {
+    console.error('Error al iniciar el servidor:', error);
+    process.exit(1);
+});

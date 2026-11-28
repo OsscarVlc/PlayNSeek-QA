@@ -12,6 +12,7 @@ import { subirImagenACloudinary } from '../services/cloudinary.service';
 import { confirmarCuentaCore } from '../services/confirmacion.service';
 import { Types } from 'mongoose';
 import { sincronizarJuegosUsuario } from '../database/dgraph/queries/juego.queries';
+import { leerTexto } from '../utils/entrada';
 
 // ---------- Constantes de mensajes (evita strings repetidos) ----------
 const MSG_NO_AUTENTICADO = 'No autenticado';
@@ -76,10 +77,7 @@ async function buscarUsuarioPorId(id: Types.ObjectId, res: Response) {
  * Sincroniza la lista actual de juegos_activos del usuario con Dgraph.
  * No bloquea el flujo si falla, solo lo deja registrado en consola.
  */
-async function sincronizarJuegosDelUsuarioEnDgraph(
-    usuarioId: string,
-    juegosActivos: { juego_id: Types.ObjectId }[],
-) {
+async function sincronizarJuegosDelUsuarioEnDgraph(usuarioId: string, juegosActivos: { juego_id: Types.ObjectId }[]) {
     try {
         const idsJuegos = juegosActivos.map((j) => j.juego_id.toString());
         await sincronizarJuegosUsuario(usuarioId, idsJuegos);
@@ -95,9 +93,12 @@ async function sincronizarJuegosDelUsuarioEnDgraph(
 
 export async function registerUser(req: Request, res: Response) {
     try {
-        const { name, email, password } = req.body;
+        // Solo aceptamos texto: un objeto como {"$ne": null} cambiaría el filtro de Mongo
+        const name = leerTexto(req.body.name);
+        const email = leerTexto(req.body.email);
+        const password = leerTexto(req.body.password);
 
-        if (name == undefined || email == undefined || password == undefined) {
+        if (!name || !email || !password) {
             return res.status(HttpStatus.BAD_REQUEST).json({
                 message: 'Campos requeridos faltantes',
             });
@@ -152,8 +153,13 @@ export async function registerUser(req: Request, res: Response) {
 }
 
 export async function loginUser(req: Request, res: Response) {
-    const { email, password } = req.body;
+    const email = leerTexto(req.body.email);
+    const password = leerTexto(req.body.password);
     try {
+        if (!email || !password) {
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Correo y contraseña son requeridos' });
+        }
+
         const user = await User.findOne({ correo: email });
 
         if (!user) {
@@ -303,7 +309,10 @@ export async function listarUsuarios(req: Request, res: Response) {
 
         const usuariosActivos = req.query.incluirInactivos === 'true' ? {} : { isActive: true };
 
-        const usuarios = await User.find(usuariosActivos).select(CAMPOS_USUARIO_SIN_CONTRASENA).skip(skip).limit(limite);
+        const usuarios = await User.find(usuariosActivos)
+            .select(CAMPOS_USUARIO_SIN_CONTRASENA)
+            .skip(skip)
+            .limit(limite);
         const total = await User.countDocuments(usuariosActivos);
 
         res.json({
@@ -335,7 +344,7 @@ export async function confirmarCuenta(req: Request, res: Response) {
 
 export async function reenviarConfirmacion(req: Request, res: Response) {
     try {
-        const { email } = req.body;
+        const email = leerTexto(req.body.email);
 
         if (!email) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El correo es requerido' });

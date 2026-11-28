@@ -15,10 +15,7 @@ export interface CandidatoRecomendado {
  * Combina los niveles de candidatos respetando su prioridad,
  * sin duplicar usuarios y aplicando el límite indicado.
  */
-function combinarCandidatosPorPrioridad(
-    niveles: CandidatoRecomendado[][],
-    limite: number,
-): CandidatoRecomendado[] {
+function combinarCandidatosPorPrioridad(niveles: CandidatoRecomendado[][], limite: number): CandidatoRecomendado[] {
     // Combinamos los 3 niveles respetando el orden de prioridad,
     // sin repetir el mismo usuario si aparece en más de un nivel
     const vistos = new Set<string>();

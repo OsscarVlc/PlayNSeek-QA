@@ -1,6 +1,12 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthRequest } from '../types/auth-request';
-import { agregarJuegoActivo, cambiarRolUsuario } from './users.controller';
+import {
+    agregarJuegoActivo,
+    cambiarRolUsuario,
+    loginUser,
+    reenviarConfirmacion,
+    registerUser,
+} from './users.controller';
 import { User } from '../database/mongo/models/user.model';
 import { sincronizarJuegosUsuario } from '../database/dgraph/queries/juego.queries';
 
@@ -248,5 +254,82 @@ describe('cambiarRolUsuario', () => {
             message: 'Rol actualizado exitosamente',
             usuario: usuarioActualizadoMock,
         });
+    });
+});
+
+// ---------- Inyección NoSQL (PNSQ-39) ----------
+// Un atacante manda un objeto en vez de un texto para que el filtro de Mongo coincida con
+// cualquier usuario. El controller debe responder 400 sin llegar a consultar la base.
+
+function crearRes() {
+    return {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+    } as unknown as Response;
+}
+
+describe('loginUser con entrada maliciosa', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('debería rechazar con 400 un correo con operador $ne y no consultar la base', async () => {
+        // Arrange
+        const req = { body: { email: { $ne: null }, password: 'cualquiera' } } as unknown as Request;
+        const res = crearRes();
+
+        // Act
+        await loginUser(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(User.findOne).not.toHaveBeenCalled();
+    });
+
+    it('debería buscar al usuario solo con el correo como texto', async () => {
+        // Arrange
+        const req = { body: { email: ' ana@correo.com ', password: 'secreta' } } as unknown as Request;
+        const res = crearRes();
+        (User.findOne as jest.Mock).mockResolvedValueOnce(null);
+
+        // Act
+        await loginUser(req, res);
+
+        // Assert
+        expect(User.findOne).toHaveBeenCalledWith({ correo: 'ana@correo.com' });
+        expect(res.status).toHaveBeenCalledWith(401);
+    });
+});
+
+describe('registerUser con entrada maliciosa', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('debería rechazar con 400 un correo con operador $gt', async () => {
+        // Arrange
+        const req = { body: { name: 'Ana', email: { $gt: '' }, password: 'secreta' } } as unknown as Request;
+        const res = crearRes();
+
+        // Act
+        await registerUser(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ message: 'Campos requeridos faltantes' });
+        expect(User.findOne).not.toHaveBeenCalled();
+    });
+});
+
+describe('reenviarConfirmacion con entrada maliciosa', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('debería rechazar con 400 un correo que no es texto', async () => {
+        // Arrange
+        const req = { body: { email: { $regex: '.*' } } } as unknown as Request;
+        const res = crearRes();
+
+        // Act
+        await reenviarConfirmacion(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(User.findOne).not.toHaveBeenCalled();
     });
 });

@@ -24,7 +24,7 @@ export function configurarChatSocket(io: Server) {
                 return socket.emit('error_chat', 'No eres integrante de este grupo');
             }
 
-            socket.join(grupoId);
+            await socket.join(grupoId);
             console.log(`Usuario ${socket.usuarioId} se unió a la sala del grupo ${grupoId}`);
 
             const mensajes = await Mensaje.find({ grupo_id: grupoId })

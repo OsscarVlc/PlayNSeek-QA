@@ -45,7 +45,7 @@ async function cargarPosts() {
             </div>
         `;
         listaPosts.appendChild(div);
-        cargarComentarios(post._id);
+        cargarComentarios(post._id).catch(registrarErrorDeCarga);
     });
 
     document.querySelectorAll('.form-comentario').forEach((form) => {
@@ -63,7 +63,7 @@ async function cargarPosts() {
             });
 
             input.value = '';
-            cargarComentarios(postId);
+            await cargarComentarios(postId);
         });
     });
 }
@@ -106,8 +106,13 @@ formNuevoPost.addEventListener('submit', async (e) => {
     if (res.ok) {
         inputContenidoPost.value = '';
         inputImagenPost.value = '';
-        cargarPosts();
+        await cargarPosts();
     }
 });
 
-cargarPosts();
+// Si una carga falla, el error queda registrado en la consola en vez de perderse
+function registrarErrorDeCarga(error) {
+    console.error('No se pudo cargar la información del grupo:', error);
+}
+
+cargarPosts().catch(registrarErrorDeCarga);

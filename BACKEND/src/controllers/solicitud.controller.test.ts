@@ -1,6 +1,7 @@
 import { Response } from 'express';
+import { Types } from 'mongoose';
 import { AuthRequest } from '../types/auth-request';
-import { enviarSolicitud } from './solicitud.controller';
+import { enviarSolicitud, listarSolicitudesEnviadas, listarSolicitudesRecibidas } from './solicitud.controller';
 import { Solicitud } from '../database/mongo/models/solicitud.model';
 import { EstadoSolicitud } from '../types/solicitud.types';
 import { crearMatchEnDgraph } from '../database/dgraph/queries/match.queries';
@@ -8,7 +9,42 @@ import { crearMatchEnDgraph } from '../database/dgraph/queries/match.queries';
 jest.mock('../database/mongo/models/solicitud.model');
 jest.mock('../database/dgraph/queries/match.queries');
 
+beforeEach(() => jest.clearAllMocks());
+
 describe('enviarSolicitud', () => {
+    it.each([{ $ne: null }, 'id-invalido'])(
+        'rechaza el destinatario %p antes de consultar el modelo',
+        async (valor) => {
+            // Arrange
+            const req = {
+                user: { _id: '123456789012345678901234' },
+                body: { aUsuario: valor },
+            } as unknown as AuthRequest;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as unknown as Response;
+
+            // Act
+            await enviarSolicitud(req, res);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(Solicitud.findOne).not.toHaveBeenCalled();
+            expect(Solicitud).not.toHaveBeenCalled();
+        },
+    );
+
+    it('devuelve 400 si falta el destinatario', async () => {
+        // Arrange
+        const req = { user: { _id: '123456789012345678901234' } } as unknown as AuthRequest;
+        const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as unknown as Response;
+
+        // Act
+        await enviarSolicitud(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(Solicitud.findOne).not.toHaveBeenCalled();
+    });
+
     it('debería rechazar con 400 si el usuario intenta enviarse una solicitud a sí mismo', async () => {
         const miId = '123456789012345678901234';
 
@@ -64,6 +100,7 @@ describe('enviarSolicitud', () => {
     });
 
     it('debería crear un match automático si la otra persona ya había enviado una solicitud pendiente', async () => {
+        // Arrange
         const miId = '123456789012345678901234';
         const otroId = '987654321098765432109876';
 
@@ -92,8 +129,20 @@ describe('enviarSolicitud', () => {
 
         (crearMatchEnDgraph as jest.Mock).mockResolvedValueOnce('0xabc');
 
+        // Act
         await enviarSolicitud(req, res);
 
+        // Assert
+        expect(Solicitud.findOne).toHaveBeenNthCalledWith(1, {
+            de_usuario: miId,
+            a_usuario: otroId,
+            estado: EstadoSolicitud.PENDIENTE,
+        });
+        expect(Solicitud.findOne).toHaveBeenNthCalledWith(2, {
+            de_usuario: otroId,
+            a_usuario: miId,
+            estado: EstadoSolicitud.PENDIENTE,
+        });
         expect(solicitudInversaMock.estado).toBe(EstadoSolicitud.ACEPTADA);
         expect(solicitudInversaMock.save).toHaveBeenCalled();
         expect(crearMatchEnDgraph).toHaveBeenCalledWith(miId, otroId);
@@ -101,6 +150,28 @@ describe('enviarSolicitud', () => {
             message: '¡Es un match! Ambos se enviaron solicitud mutuamente',
             match: true,
         });
+    });
+});
+
+describe('listar solicitudes', () => {
+    const id = '123456789012345678901234';
+
+    it.each([
+        { listar: listarSolicitudesRecibidas, filtro: { a_usuario: id, estado: EstadoSolicitud.PENDIENTE } },
+        { listar: listarSolicitudesEnviadas, filtro: { de_usuario: id } },
+    ])('$listar.name consulta el identificador autenticado como texto', async ({ listar, filtro }) => {
+        // Arrange
+        const req = { user: { _id: new Types.ObjectId(id) } } as unknown as AuthRequest;
+        const res = { json: jest.fn() } as unknown as Response;
+        const populate = jest.fn().mockResolvedValue([]);
+        jest.mocked(Solicitud.find).mockReturnValue({ populate } as unknown as ReturnType<typeof Solicitud.find>);
+
+        // Act
+        await listar(req, res);
+
+        // Assert
+        expect(Solicitud.find).toHaveBeenCalledWith(filtro);
+        expect(res.json).toHaveBeenCalledWith({ data: [] });
     });
 });
 

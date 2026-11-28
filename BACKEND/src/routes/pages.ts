@@ -21,6 +21,7 @@ import {
     requireAdminVistas,
     requireModeradorVistas,
 } from '../middlewares/auth-vistas.middleware';
+import { soloSiPideHtml } from '../middlewares/negociacion.middleware';
 
 const router = express.Router();
 
@@ -28,8 +29,8 @@ router.get('/', authOpcionalVistas, mostrarIndex);
 router.get('/login', mostrarLogin);
 router.get('/register', mostrarRegister);
 router.get('/perfil', authMiddlewareVistas, mostrarPerfil);
-router.get('/juegos', mostrarJuegos);
-router.get('/juegos/:id', authOpcionalVistas, mostrarDetalleJuego);
+router.get('/juegos', soloSiPideHtml, mostrarJuegos);
+router.get('/juegos/:id', soloSiPideHtml, authOpcionalVistas, mostrarDetalleJuego);
 router.get('/grupos', mostrarGrupos);
 router.get('/grupos/:id', authOpcionalVistas, mostrarDetalleGrupo);
 router.get('/logout', logout);
