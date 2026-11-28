@@ -5,6 +5,7 @@ import { IPost } from '../types/post.types';
 import { Post } from '../database/mongo/models/post.model';
 import { Grupo } from '../database/mongo/models/grupo.model';
 import { subirImagenACloudinary } from '../services/cloudinary.service';
+import { leerEnteroPositivo, leerObjectId } from '../utils/entrada';
 
 const MSG_NO_AUTENTICADO = 'No autenticado';
 const MSG_ID_INVALIDO = 'Id Invalido';
@@ -20,7 +21,7 @@ interface FiltroPost {
  * Verifica que el usuario pueda consultar los posts del grupo.
  * Si no tiene acceso, envía la respuesta correspondiente y devuelve false.
  */
-async function validarAccesoPostsGrupo(req: AuthRequest, res: Response): Promise<boolean> {
+async function validarAccesoPostsGrupo(req: AuthRequest, res: Response, grupoId: string): Promise<boolean> {
     if (typeof req.user === 'string' || !req.user) {
         res.status(HttpStatus.UNAUTHORIZED).json({
             message: 'Debes iniciar sesión para ver los posts de un grupo',
@@ -31,7 +32,7 @@ async function validarAccesoPostsGrupo(req: AuthRequest, res: Response): Promise
     const miId = req.user._id.toString();
     const esAdmin = req.user.rol === 'administrador';
 
-    const grupo = await Grupo.findById(req.query.grupo_id);
+    const grupo = await Grupo.findById(grupoId);
     if (!grupo || !grupo.activo) {
         res.status(HttpStatus.NOT_FOUND).json({ message: 'Grupo no encontrado' });
         return false;
@@ -123,17 +124,22 @@ export async function crearPost(req: AuthRequest, res: Response) {
 
 export async function listarPosts(req: AuthRequest, res: Response) {
     try {
-        const pagina = Number(req.query.pagina) || 1;
-        const limite = Number(req.query.limite) || 10;
+        const pagina = leerEnteroPositivo(req.query.pagina) ?? 1;
+        const limite = Math.min(leerEnteroPositivo(req.query.limite) ?? 10, 50);
         const skip = (pagina - 1) * limite;
 
         const filtro: FiltroPost = req.query.incluirInactivos === 'true' ? {} : { activo: true };
 
-        if (req.query.grupo_id) {
-            const tieneAcceso = await validarAccesoPostsGrupo(req, res);
+        if (req.query.grupo_id !== undefined) {
+            const grupoId = leerObjectId(req.query.grupo_id);
+            if (grupoId === null) {
+                return res.status(HttpStatus.BAD_REQUEST).json({ message: 'grupo_id debe ser un ObjectId válido' });
+            }
+
+            const tieneAcceso = await validarAccesoPostsGrupo(req, res, grupoId);
             if (!tieneAcceso) return;
 
-            filtro.grupo_id = req.query.grupo_id as string;
+            filtro.grupo_id = grupoId;
         }
 
         const posts = await Post.find(filtro).skip(skip).limit(limite);

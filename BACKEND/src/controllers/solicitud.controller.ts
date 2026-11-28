@@ -4,6 +4,7 @@ import { HttpStatus } from '../types/https-status';
 import { Solicitud } from '../database/mongo/models/solicitud.model';
 import { EstadoSolicitud } from '../types/solicitud.types';
 import { crearMatchEnDgraph } from '../database/dgraph/queries/match.queries';
+import { leerObjectId } from '../utils/entrada';
 
 const MSG_NO_AUTENTICADO = 'No autenticado';
 const MSG_ID_INVALIDO = 'Id Invalido';
@@ -34,10 +35,11 @@ export async function enviarSolicitud(req: AuthRequest, res: Response) {
         }
 
         const deUsuario = req.user._id.toString();
-        const { aUsuario } = req.body;
-
-        if (!aUsuario) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: 'aUsuario es requerido' });
+        const aUsuario = leerObjectId(req.body?.aUsuario);
+        if (aUsuario === null) {
+            return res
+                .status(HttpStatus.BAD_REQUEST)
+                .json({ message: 'aUsuario es requerido y debe ser un ObjectId válido' });
         }
 
         if (aUsuario === deUsuario) {
@@ -97,7 +99,7 @@ export async function listarSolicitudesRecibidas(req: AuthRequest, res: Response
         }
 
         const solicitudes = await Solicitud.find({
-            a_usuario: req.user._id,
+            a_usuario: String(req.user._id),
             estado: EstadoSolicitud.PENDIENTE,
         }).populate('de_usuario', 'nombre foto_perfil idiomas plataformas');
 
@@ -163,7 +165,7 @@ export async function listarSolicitudesEnviadas(req: AuthRequest, res: Response)
         }
 
         const solicitudes = await Solicitud.find({
-            de_usuario: req.user._id,
+            de_usuario: String(req.user._id),
         }).populate('a_usuario', 'nombre foto_perfil');
 
         return res.json({ data: solicitudes });

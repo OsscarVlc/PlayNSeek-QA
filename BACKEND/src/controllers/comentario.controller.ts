@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../types/auth-request';
 import { HttpStatus } from '../types/https-status';
 import { Comentario } from '../database/mongo/models/comentario.model';
+import { leerEnteroPositivo, leerObjectId } from '../utils/entrada';
 
 // agregamos constantes para resolver warnings con eslint
 const MSG_NO_AUTENTICADO = 'No autenticado';
@@ -65,13 +66,18 @@ export async function crearComentario(req: AuthRequest, res: Response) {
 
 export async function listarComentarios(req: Request, res: Response) {
     try {
-        const pagina = Number(req.query.pagina) || 1;
-        const limite = Number(req.query.limite) || 10;
+        const pagina = leerEnteroPositivo(req.query.pagina) ?? 1;
+        const limite = Math.min(leerEnteroPositivo(req.query.limite) ?? 10, 50);
         const skip = (pagina - 1) * limite;
 
         const filtro: FiltroComentario = {};
-        if (req.query.post_id) {
-            filtro.post_id = req.query.post_id as string;
+        if (req.query.post_id !== undefined) {
+            const postId = leerObjectId(req.query.post_id);
+            if (postId === null) {
+                return res.status(HttpStatus.BAD_REQUEST).json({ message: 'post_id debe ser un ObjectId válido' });
+            }
+
+            filtro.post_id = postId;
         }
 
         const comentarios = await Comentario.find(filtro).populate('usuario_id', 'nombre').skip(skip).limit(limite);

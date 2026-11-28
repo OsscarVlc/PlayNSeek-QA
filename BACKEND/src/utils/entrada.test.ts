@@ -1,4 +1,4 @@
-import { leerEnteroPositivo, leerOpcion, leerTexto } from './entrada';
+import { leerEnteroPositivo, leerObjectId, leerOpcion, leerTexto } from './entrada';
 
 describe('leerTexto', () => {
     it('devuelve el texto sin espacios a los lados', () => {
@@ -16,6 +16,27 @@ describe('leerTexto', () => {
         expect(leerTexto(undefined)).toBeNull();
         expect(leerTexto(123)).toBeNull();
         expect(leerTexto(['a'])).toBeNull();
+    });
+});
+
+describe('leerObjectId', () => {
+    it('devuelve el identificador válido como texto sin espacios', () => {
+        // Arrange
+        const id = '507f1f77bcf86cd799439011';
+
+        // Act
+        const resultado = leerObjectId(` ${id} `);
+
+        // Assert
+        expect(resultado).toBe(id);
+    });
+
+    it.each([[{ $ne: null }], [['507f1f77bcf86cd799439011']], ['id-invalido']])('rechaza el valor %p', (valor) => {
+        // Act
+        const resultado = leerObjectId(valor);
+
+        // Assert
+        expect(resultado).toBeNull();
     });
 });
 
